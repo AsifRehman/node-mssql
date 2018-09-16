@@ -21,6 +21,27 @@ connection.on('connect', function(err) {
   if (err) {
     console.log(err);
   } else {
-    console.log('Connected');
+      console.log('Connected');
+      executeStatement();
   }
 });
+
+var Request = require('tedious').Request;
+
+function executeStatement() {
+  request = new Request("select * from parties", function(err, rowCount) {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log(rowCount + ' rows');
+    }
+  });
+
+  request.on('row', function(columns) {
+    columns.forEach(function(column) {
+      console.log(column.value);
+    });
+  });
+
+  connection.execSql(request);
+}
