@@ -1,47 +1,57 @@
-var Connection = require('tedious').Connection;
-var Request = require('tedious').Request;
-var TYPES = require('tedious').TYPES;
+const path = require('path');
+const feathers = require('@feathersjs/feathers');
+const express = require('@feathersjs/express');
+const socketio = require('@feathersjs/socketio');
 
-// Create connection to database
-var config = {
-  userName: 'sa', // update me
-  password: '007', // update me
-    server: 'YAS',
-  options: {
-      database: 'test',
-      port: 60986,
-      encrypt: false,
-      instance: 'SQLEXPRESS'
-    }
-}
-var connection = new Connection(config);
+const Sequelize = require('sequelize');
+const service = require('feathers-sequelize');
 
-// Attempt to connect and execute queries if connection goes through
-connection.on('connect', function(err) {
-  if (err) {
-    console.log(err);
-  } else {
-      console.log('Connected');
-      executeStatement();
+const sequelize = new Sequelize('sequelize', '', '', {
+  dialect: 'sqlite',
+  storage: path.join(__dirname, 'db.sqlite'),
+  logging: false
+});
+const Message = sequelize.define('message', {
+  text: {
+    type: Sequelize.STRING,
+    allowNull: false
   }
+}, {
+  freezeTableName: true
 });
 
-var Request = require('tedious').Request;
+// Create an Express compatible Feathers application instance.
+const app = express(feathers());
 
-function executeStatement() {
-  request = new Request("select * from parties", function(err, rowCount) {
-    if (err) {
-      console.log(err);
-    } else {
-      console.log(rowCount + ' rows');
-    }
-  });
+// Turn on JSON parser for REST services
+app.use(express.json());
+// Turn on URL-encoded parser for REST services
+app.use(express.urlencoded({ extended: true }));
+// Enable REST services
+app.configure(express.rest());
+// Enable Socket.io services
+app.configure(socketio());
+// Create an in-memory Feathers service with a default page size of 2 items
+// and a maximum size of 4
+app.use('/messages', service({
+  Model: Message,
+  paginate: {
+    default: 2,
+    max: 4
+  }
+}));
+app.use(express.errorHandler());
 
-  request.on('row', function(columns) {
-    columns.forEach(function(column) {
-      console.log(column.value);
-    });
-  });
+Message.sync({ force: true }).then(() => {
+  // Create a dummy Message
+  app.service('messages').create({
+    text: 'Message created on server'
+  }).then(message => console.log('Created message', message));
+});
 
-  connection.execSql(request);
-}
+// Start the server
+const port = 5000;
+
+app.listen(port, () => {
+  console.log(`Feathers server listening on port ${port}`);
+});
