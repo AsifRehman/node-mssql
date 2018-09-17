@@ -6,12 +6,12 @@ var TYPES = require('tedious').TYPES;
 var config = {
   userName: 'sa', // update me
   password: '007', // update me
-    server: 'YAS',
+    server: 'SERVER',
   options: {
-      database: 'test',
-      port: 60986,
+      database: 'IM',
+      port: 56058,
       encrypt: false,
-      instance: 'SQLEXPRESS'
+      instance: 'SQL2014'
     }
 }
 var connection = new Connection(config);
